@@ -1,3 +1,6 @@
+##LIS572 Final Project
+#Doreen Chen
+
 ##load libraries
 library(dplyr)
 library(stringr)
@@ -5,17 +8,24 @@ library(visNetwork)
 library(igraph)
 library(RColorBrewer)
 library(tidyr)
-data2 <- read.csv("../data/persondata.csv", quote = "", row.names = NULL, stringsAsFactors = FALSE)
-data <- read.csv("../data/relationshipdata.csv", quote = "", row.names = NULL, stringsAsFactors = FALSE)
+##Preparing Data
+#load data. 
+data <- read.csv("../LIS572/sbdb/relationshipdata.csv", quote = "", row.names = NULL, stringsAsFactors = FALSE)
+data2 <- read.csv("../LIS572/sbdb/persondata.csv", quote = "", row.names = NULL, stringsAsFactors = FALSE) #For the purpose of the project, I have chosen to replace all the Chinese names in data with their corresponding pinyin names in data2, even if it makes more sense for the personality to have an Enlgish name
+. 
+# Replace values using left_join for both source and target. 
 data <- data %>%
   left_join(data2, by = c("source" = "Chinese")) %>%
   mutate(pinyinsource = ifelse(!is.na(pinyin), pinyin, source))
+
 data <- data %>%
   left_join(data2 %>% 
               rename(pinyin_target = pinyin), by = c("target" = "Chinese")) %>%
   mutate(pinyintarget = ifelse(!is.na(pinyin_target), pinyin_target, target))
 data <- data %>% 
   select(-source, -target, -pinyin, -pinyin_target)
+
+#Correcting missing pinyin errors in source. 
 data <- data %>%
   mutate(pinyinsource = case_when(
     pinyinsource == "林志义" ~ "Lin Zhiyi",
@@ -23,6 +33,7 @@ data <- data %>%
     pinyinsource == "洪锦绰" ~ "Hong Jinchuo",
     TRUE ~ pinyinsource
   ))
+#Correcting missing pinyin errors in target. 
 data <- data %>%
   mutate(pinyintarget = case_when(
     pinyintarget == "转道法师／老和尚" ~ "Zhuandao Fashi/Laoheshang",
@@ -33,17 +44,32 @@ data <- data %>%
     pinyintarget == "曾金福" ~ "Zeng Jinfu",
     TRUE ~ pinyintarget
   ))
+
+##Create Nodes and Edges
+#This line combines names in target and source columns and filters out repeats.
 nodes <- data.frame(unique(c(data$pinyinsource, data$pinyintarget)))
+
+#Nodes: Create unique id for each node or person name. 
 colnames(nodes) <- c("id")
 nodes <- nodes %>% mutate(label = nodes$id) %>% distinct(id,label)
+#Nodes: Copy the id column relabeled as label. This is for the purpose of creating the network visualization. 
 nodes$id <- nodes$label
+
+#Edges: These lines creates the edges dataframe that indicates the relationship between each person. The colors indicate the type of relationship. 
+#For reference purposes: darkred indicates 'within three generation and couple', green indicates 'friend', pink indicates 'relative', lightgreen indicates 'acquaintance,' and darkgreen indicates 'close friend.'
 edges <- data %>% select(pinyinsource, pinyintarget, relclas)
 colnames(edges) <- c("from","to","label")
 edges <- edges %>% mutate(color = label)
 edges <- edges %>% mutate(color = str_replace_all(color, c("三代以内直系血亲及夫妻"= "darkred", "普通伙伴" = "green","普通亲戚" = "pink","轻度社交" = "lightgreen","密切伙伴"="darkgreen")))
+
+#Label column is deleted for edges so that the label doesn't show up on every edge in the data visualization.
 edges <- edges %>% select(-label)
+
+##Create Data Visualization
+#Data Visualization1: Data Visualization that shows the entire relationship network. Takes a while to load due to it being a network visualization and the large dataset. 
+#visIgraphLayout()  reduces load time but only creates a static graph. Mostly for testing purposes.
 visNetwork(nodes, edges, main = 'Singapore Chinese Personalities Database Social Network') %>%  
-          visPhysics(stabilization = TRUE) %>% 
+          visPhysics(stabilization = TRUE) %>% #Stabilizes the network so the nodes don't bounce around. 
   visOptions(highlightNearest=TRUE,
              nodesIdSelection=TRUE) %>% 
   visLegend(
@@ -53,23 +79,29 @@ visNetwork(nodes, edges, main = 'Singapore Chinese Personalities Database Social
       color = c("darkred", "darkgreen", "pink", "lightgreen","darkgray")))%>% 
   visNodes(size = 5, color = list(highlight = "yellow"))
 
-
-
+#Data Visualization2: The following analysis look at who has the highest amount of connections. 
+#This article is heavily consulted https://jtr13.github.io/cc21fall2/network-visualization-in-r.html#centrality-measurement
+#graphfromdataframe function creates an igraph graph from my nodes and edges dataframe. 
 g <- graph_from_data_frame(d=edges, vertices=nodes, directed=FALSE)
-g
+# Calculate degree centrality for each node (number of connections) and store it as a numeric vector
 degree_centrality <- degree(g)
 nodes2 <- nodes
 
+# Add the degree centrality values to the nodes2 dataframe, matching them to node IDs.
 nodes2$degree_centrality <- degree_centrality[as.character(nodes2$id)]
-head(sort(degree_centrality, decreasing=TRUE))
 
+# Generate a color palette with 9 (max number) shades of "YlOrRd" (Yellow-Orange-Red).
 base_palette <- brewer.pal(9, "YlOrRd")
+# Create a gradient of 705 colors, reversing the palette to emphasize higher centrality.
 colors_centrality <- rev(colorRampPalette(base_palette)(705))
 
-importance <- strength(g)
+# #This sum up the edge weight of the adjacent edges for each node. In other words, it helps determine whether node size should be bigger or smaller depending on the number of their relationships. 
+importance <- strength(g) 
 nodes2$importance <- importance
 
-nodes2 <- nodes2 %>% mutate(degree_rank=706-floor(rank(degree_centrality)), color.background=colors_centrality[degree_rank], size=log((importance+3)^5))
+nodes2 <- nodes2 %>% mutate(degree_rank=706-floor(rank(degree_centrality)),#rank degree centrality
+                            color.background=colors_centrality[degree_rank], #Assign color based on rank 
+                            size=log((importance+3)^5)) #scale node size
 
 visNetwork(nodes2, edges, main = 'Degree Centrality of Prominent Singapore Chinese Personalities') %>%
   visOptions(highlightNearest=TRUE,
@@ -83,9 +115,9 @@ visNetwork(nodes2, edges, main = 'Degree Centrality of Prominent Singapore Chine
   visNodes(color = list(highlight = "yellow"))
 
 
-#DataVisualization3: Looking at the top 10 personalities who have the greatest number of relationships and see if and what kind of relationships they have with each other. I am counting the occurrence of personality names in both from and to columns in the edges dataframe. 
+#DataVisualization3: Looking at the top 20 personalities who have the greatest number of relationships and see if and what kind of relationships they have with each other. I am counting the occurrence of personality names in both from and to columns in the edges dataframe. 
 # Usage of the function pivot_longer helps me combine from and to columns and count them at the same time. 
-
+#Filter out top 20 personalities with the largest amount of relationships.
 top_nodes <- edges %>%
   select(from, to) %>%                  
   pivot_longer(cols = everything(),     
@@ -94,10 +126,10 @@ top_nodes <- edges %>%
                names_repair = "minimal") %>% 
   count(name, sort = TRUE) %>% 
   slice_max(n = 20, order_by = n)
-
+#Repeats the previous steps of creating nodes and edges for visualization purposes. 
 filtered_nodes <- nodes %>%  filter(id %in% top_nodes$name|label %in% top_nodes$name)
 filtered_edges <- edges %>%  filter(from %in% top_nodes$name|to %in% top_nodes$name)
-
+#Creates the visualization. 
 visNetwork(filtered_nodes, filtered_edges, main = 'Top 20 Singapore Chinese Persoanlities Social Network') %>%  
   visPhysics(stabilization = TRUE) %>%
   visOptions(highlightNearest=TRUE,
@@ -109,4 +141,8 @@ visNetwork(filtered_nodes, filtered_edges, main = 'Top 20 Singapore Chinese Pers
       color = c("darkred", "darkgreen", "pink", "lightgreen","darkgray")))%>% 
   visNodes(size = 5, color = list(highlight = "yellow"))
 
-
+##Sources Consulted
+#https://www.rdocumentation.org/packages/visNetwork/versions/2.1.2
+#https://thatdarndata.com/node-customization-for-stunning-networks/
+#https://cran.r-project.org/web/packages/visNetwork/vignettes/Introduction-to-visNetwork.html
+#https://www.statworx.com/en/content-hub/blog/interactive-network-visualization-with-r/

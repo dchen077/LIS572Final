@@ -5,17 +5,24 @@ library(visNetwork)
 library(igraph)
 library(RColorBrewer)
 library(tidyr)
-data2 <- read.csv("../data/persondata.csv", quote = "", row.names = NULL, stringsAsFactors = FALSE)
-data <- read.csv("../data/relationshipdata.csv", quote = "", row.names = NULL, stringsAsFactors = FALSE)
+##Preparing Data
+#load data. 
+data <- read.csv("../LIS572/sbdb/relationshipdata.csv", quote = "", row.names = NULL, stringsAsFactors = FALSE)
+data2 <- read.csv("../LIS572/sbdb/persondata.csv", quote = "", row.names = NULL, stringsAsFactors = FALSE) #For the purpose of the project, I have chosen to replace all the Chinese names in data with their corresponding pinyin names in data2, even if it makes more sense for the personality to have an Enlgish name
+. 
+# Replace values using left_join for both source and target. 
 data <- data %>%
   left_join(data2, by = c("source" = "Chinese")) %>%
   mutate(pinyinsource = ifelse(!is.na(pinyin), pinyin, source))
+
 data <- data %>%
   left_join(data2 %>% 
               rename(pinyin_target = pinyin), by = c("target" = "Chinese")) %>%
   mutate(pinyintarget = ifelse(!is.na(pinyin_target), pinyin_target, target))
 data <- data %>% 
   select(-source, -target, -pinyin, -pinyin_target)
+
+#Correcting missing pinyin errors in source. 
 data <- data %>%
   mutate(pinyinsource = case_when(
     pinyinsource == "林志义" ~ "Lin Zhiyi",
@@ -23,6 +30,7 @@ data <- data %>%
     pinyinsource == "洪锦绰" ~ "Hong Jinchuo",
     TRUE ~ pinyinsource
   ))
+#Correcting missing pinyin errors in target. 
 data <- data %>%
   mutate(pinyintarget = case_when(
     pinyintarget == "转道法师／老和尚" ~ "Zhuandao Fashi/Laoheshang",
@@ -33,17 +41,33 @@ data <- data %>%
     pinyintarget == "曾金福" ~ "Zeng Jinfu",
     TRUE ~ pinyintarget
   ))
+
+
+##Create Nodes and Edges
+#This line combines names in target and source columns and filters out repeats.
 nodes <- data.frame(unique(c(data$pinyinsource, data$pinyintarget)))
+
+#Nodes: Create unique id for each node or person name. 
 colnames(nodes) <- c("id")
 nodes <- nodes %>% mutate(label = nodes$id) %>% distinct(id,label)
+#Nodes: Copy the id column relabeled as label. This is for the purpose of creating the network visualization. 
 nodes$id <- nodes$label
+
+#Edges: These lines creates the edges dataframe that indicates the relationship between each person. The colors indicate the type of relationship. 
+#For reference purposes: darkred indicates 'within three generation and couple', green indicates 'friend', pink indicates 'relative', lightgreen indicates 'acquaintance,' and darkgreen indicates 'close friend.'
 edges <- data %>% select(pinyinsource, pinyintarget, relclas)
 colnames(edges) <- c("from","to","label")
 edges <- edges %>% mutate(color = label)
 edges <- edges %>% mutate(color = str_replace_all(color, c("三代以内直系血亲及夫妻"= "darkred", "普通伙伴" = "green","普通亲戚" = "pink","轻度社交" = "lightgreen","密切伙伴"="darkgreen")))
+
+#Label column is deleted for edges so that the label doesn't show up on every edge in the data visualization.
 edges <- edges %>% select(-label)
+
+##Create Data Visualization
+#Data Visualization1: Data Visualization that shows the entire relationship network. Takes a while to load due to it being a network visualization and the large dataset. 
+#visIgraphLayout()  reduces load time but only creates a static graph. Mostly for testing purposes.
 visNetwork(nodes, edges, main = 'Singapore Chinese Personalities Database Social Network') %>%  
-          visPhysics(stabilization = TRUE) %>% 
+          visPhysics(stabilization = TRUE) %>% #Stabilizes the network so the nodes don't bounce around. 
   visOptions(highlightNearest=TRUE,
              nodesIdSelection=TRUE) %>% 
   visLegend(
@@ -53,7 +77,8 @@ visNetwork(nodes, edges, main = 'Singapore Chinese Personalities Database Social
       color = c("darkred", "darkgreen", "pink", "lightgreen","darkgray")))%>% 
   visNodes(size = 5, color = list(highlight = "yellow"))
 
-
+#Data Visualization2: The following analysis look at who has the highest amount of connections. 
+#This article is heavily consulted https://jtr13.github.io/cc21fall2/network-visualization-in-r.html#centrality-measurement
 
 g <- graph_from_data_frame(d=edges, vertices=nodes, directed=FALSE)
 g

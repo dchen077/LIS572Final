@@ -61,9 +61,54 @@ visNetwork(nodes, edges, main = 'Singapore Chinese Personalities Database Social
   visNodes(size = 5, color = list(highlight = "yellow"))
 ```
 
-## R Markdown
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r DegreeCentrality, echo=FALSE, message=FALSE, warning=FALSE}
+
+g <- graph_from_data_frame(d=edges, vertices=nodes, directed=FALSE)
+degree_centrality <- degree(g)
+nodes2 <- nodes
+nodes2$degree_centrality <- degree_centrality[as.character(nodes2$id)]
+base_palette <- brewer.pal(9, "YlOrRd")
+colors_centrality <- rev(colorRampPalette(base_palette)(705))
+importance <- strength(g)
+nodes2$importance <- importance
+nodes2 <- nodes2 %>% mutate(degree_rank=706-floor(rank(degree_centrality)), color.background=colors_centrality[degree_rank], size=log((importance+3)^5))
+visNetwork(nodes2, edges, main = 'Degree Centrality of Prominent Singapore Chinese Personalities') %>%
+  visOptions(highlightNearest=TRUE,
+             nodesIdSelection=TRUE, selectedBy="degree_rank") %>% 
+  visPhysics(stabilization = TRUE) %>% 
+  visLegend(
+    enabled = TRUE,
+    addEdges = data.frame(
+      label = c("Blood related and couple", "Close friend","relative","friend", "acquaintance"),
+      color = c("darkred", "darkgreen", "pink", "green","darkgray")))%>% 
+  visNodes(color = list(highlight = "yellow"))
+```
+
+```{r topnodes, echo=FALSE, message=FALSE, warning=FALSE}
+top_nodes <- edges %>%
+  select(from, to) %>%                  
+  pivot_longer(cols = everything(),     
+               values_to = "name",
+               names_to = NULL, 
+               names_repair = "minimal") %>% 
+  count(name, sort = TRUE) %>% 
+  slice_max(n = 20, order_by = n)
+
+filtered_nodes <- nodes %>%  filter(id %in% top_nodes$name|label %in% top_nodes$name)
+filtered_edges <- edges %>%  filter(from %in% top_nodes$name|to %in% top_nodes$name)
+
+visNetwork(filtered_nodes, filtered_edges, main = 'Top 20 Singapore Chinese Persoanlities Social Network') %>%  
+  visPhysics(stabilization = TRUE) %>%
+  visOptions(highlightNearest=TRUE,
+             nodesIdSelection=TRUE) %>% 
+  visLegend(
+    enabled = TRUE,
+    addEdges = data.frame(
+      label = c("Blood related and couple", "Close friend","relative","friend", "acquaintance"),
+      color = c("darkred", "darkgreen", "pink", "lightgreen","darkgray")))%>% 
+  visNodes(size = 5, color = list(highlight = "yellow"))
+```
 
