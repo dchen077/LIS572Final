@@ -55,7 +55,7 @@ nodes$id <- nodes$label
 edges <- data %>% select(pinyinsource, pinyintarget, relclas)
 colnames(edges) <- c("from","to","label")
 edges <- edges %>% mutate(color = label)
-edges <- edges %>% mutate(color = str_replace_all(color, c("三代以内直系血亲及夫妻"= "darkred", "普通伙伴" = "green","普通亲戚" = "pink","轻度社交" = "lightgreen","密切伙伴"="darkgreen")))
+edges <- edges %>% mutate(color = str_replace_all(color, c("三代以内直系血亲及夫妻"= "darkred", "普通伙伴" = "lightgreen","普通亲戚" = "pink","轻度社交" = "darkgray","密切伙伴"="darkgreen")))
 edges <- edges %>% select(-label)
 visNetwork(nodes, edges, width = "100%", height = "500px",main = 'Singapore Chinese Personalities Database Social Network') %>%  
           visPhysics(stabilization = TRUE) %>% 
@@ -91,7 +91,7 @@ visNetwork(nodes2, edges, width = "100%", height = "500px",main = 'Degree Centra
     enabled = TRUE,
     addEdges = data.frame(
       label = c("blood related and couple", "close friend","relative","friend", "acquaintance"),
-      color = c("darkred", "darkgreen", "pink", "green","darkgray")))%>% 
+      color = c("darkred", "darkgreen", "pink", "lightgreen","darkgray")))%>% 
   visNodes(color = list(highlight = "yellow")) %>% 
   visInteraction(navigationButtons = TRUE)
 ```
@@ -126,7 +126,7 @@ visNetwork(filtered_nodes, filtered_edges, width = "100%", height = "500px",main
 ```
 <br>
 <br>
-<br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;In conclusion, the SBDB visualizations reveal a dense and interconnected social network, with the center formed by highly connected individuals who are then surrounded by less-connected peripheral nodes. Friendships (dark green and light green) relationships dominate the network, followed by familial ties (red and pink). Overall, the network showcases a cohesive social structure where a number of prominent personalities play central roles in maintaining connectivity and balance of the network. 
+<br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;In conclusion, the SBDB visualizations reveal a dense and interconnected social network, with the center formed by highly connected individuals who are then surrounded by less-connected peripheral nodes. Friend relationships dominate the network, followed by familial ties. Overall, the network showcases a cohesive social structure where a number of prominent personalities play central roles in maintaining connectivity and balance of the network. 
 <br><span style="font-size: 20px;">**Limitations**
 <br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;On the technical side, the project was an ambitious attempt that requires me to find, learn and implement new tools like visNetwork, iGraph, and various additional packages for network analysis and visualization. As someone with limited prior experience in web development, embedding interactive visualizations into a functional website proved to be a significant challenge. *(I am very grateful for GitHub’s existence and documentation)*
 <br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;Furthermore, due to some self-imposed challenges and time constraints, I was unable to fully utilize the detailed relationship information despite my intention to do so. This analysis could further benefit from utilizing social network theories and be put into its historical, political, and social context. 

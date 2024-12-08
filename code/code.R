@@ -40,7 +40,7 @@ nodes$id <- nodes$label
 edges <- data %>% select(pinyinsource, pinyintarget, relclas)
 colnames(edges) <- c("from","to","label")
 edges <- edges %>% mutate(color = label)
-edges <- edges %>% mutate(color = str_replace_all(color, c("三代以内直系血亲及夫妻"= "darkred", "普通伙伴" = "green","普通亲戚" = "pink","轻度社交" = "lightgreen","密切伙伴"="darkgreen")))
+edges <- edges %>% mutate(color = str_replace_all(color, c("三代以内直系血亲及夫妻"= "darkred", "普通伙伴" = "lightgreen","普通亲戚" = "pink","轻度社交" = "darkgray","密切伙伴"="darkgreen")))
 edges <- edges %>% select(-label)
 visNetwork(nodes, edges, main = 'Singapore Chinese Personalities Database Social Network') %>%  
           visPhysics(stabilization = TRUE) %>% 
@@ -79,7 +79,7 @@ visNetwork(nodes2, edges, main = 'Degree Centrality of Prominent Singapore Chine
     enabled = TRUE,
     addEdges = data.frame(
       label = c("Blood related and couple", "Close friend","relative","friend", "acquaintance"),
-      color = c("darkred", "darkgreen", "pink", "green","darkgray")))%>% 
+      color = c("darkred", "darkgreen", "pink", "lightgreen","darkgray")))%>% 
   visNodes(color = list(highlight = "yellow"))
 
 
