@@ -1,0 +1,137 @@
+##load libraries
+library(dplyr)
+library(stringr)
+library(visNetwork)
+library(igraph)
+library(RColorBrewer)
+library(tidyr)
+##Preparing Data
+#load data. 
+data <- read.csv(""C:\Users\daoyi\OneDrive\Desktop\LinkedData\GitHub Repo\LIS572Final\data\persondata.csv"", quote = "", row.names = NULL, stringsAsFactors = FALSE)
+data2 <- read.csv("https://raw.githubusercontent.com/dchen077/LIS572Final/refs/heads/main/data/relationshipdata.csv", quote = "", row.names = NULL, stringsAsFactors = FALSE) #For the purpose of the project, I have chosen to replace all the Chinese names in data with their corresponding pinyin names in data2, even if it makes more sense for the personality to have an Enlgish name
+. 
+# Replace values using left_join for both source and target. 
+data <- data %>%
+  left_join(data2, by = c("source" = "Chinese")) %>%
+  mutate(pinyinsource = ifelse(!is.na(pinyin), pinyin, source))
+
+data <- data %>%
+  left_join(data2 %>% 
+              rename(pinyin_target = pinyin), by = c("target" = "Chinese")) %>%
+  mutate(pinyintarget = ifelse(!is.na(pinyin_target), pinyin_target, target))
+data <- data %>% 
+  select(-source, -target, -pinyin, -pinyin_target)
+
+#Correcting missing pinyin errors in source. 
+data <- data %>%
+  mutate(pinyinsource = case_when(
+    pinyinsource == "林志义" ~ "Lin Zhiyi",
+    pinyinsource == "林天尧" ~ "Lin Tianyao",
+    pinyinsource == "洪锦绰" ~ "Hong Jinchuo",
+    TRUE ~ pinyinsource
+  ))
+#Correcting missing pinyin errors in target. 
+data <- data %>%
+  mutate(pinyintarget = case_when(
+    pinyintarget == "转道法师／老和尚" ~ "Zhuandao Fashi/Laoheshang",
+    pinyintarget == "张乞" ~ "Zhang Qi",
+    pinyintarget == "珊顿•汤姆士" ~ "Shandun Tangmushi",
+    pinyintarget == "黄树芳" ~ "Huang Shufang", 
+    pinyintarget == "陈季骗" ~ "Chen Jipian",
+    pinyintarget == "曾金福" ~ "Zeng Jinfu",
+    TRUE ~ pinyintarget
+  ))
+
+
+##Create Nodes and Edges
+#This line combines names in target and source columns and filters out repeats.
+nodes <- data.frame(unique(c(data$pinyinsource, data$pinyintarget)))
+
+#Nodes: Create unique id for each node or person name. 
+colnames(nodes) <- c("id")
+nodes <- nodes %>% mutate(label = nodes$id) %>% distinct(id,label)
+#Nodes: Copy the id column relabeled as label. This is for the purpose of creating the network visualization. 
+nodes$id <- nodes$label
+
+#Edges: These lines creates the edges dataframe that indicates the relationship between each person. The colors indicate the type of relationship. 
+#For reference purposes: darkred indicates 'within three generation and couple', green indicates 'friend', pink indicates 'relative', lightgreen indicates 'acquaintance,' and darkgreen indicates 'close friend.'
+edges <- data %>% select(pinyinsource, pinyintarget, relclas)
+colnames(edges) <- c("from","to","label")
+edges <- edges %>% mutate(color = label)
+edges <- edges %>% mutate(color = str_replace_all(color, c("三代以内直系血亲及夫妻"= "darkred", "普通伙伴" = "green","普通亲戚" = "pink","轻度社交" = "lightgreen","密切伙伴"="darkgreen")))
+
+#Label column is deleted for edges so that the label doesn't show up on every edge in the data visualization.
+edges <- edges %>% select(-label)
+
+##Create Data Visualization
+#Data Visualization1: Data Visualization that shows the entire relationship network. Takes a while to load due to it being a network visualization and the large dataset. 
+#visIgraphLayout()  reduces load time but only creates a static graph. Mostly for testing purposes.
+visNetwork(nodes, edges, main = 'Singapore Chinese Personalities Database Social Network') %>%  
+          visPhysics(stabilization = TRUE) %>% #Stabilizes the network so the nodes don't bounce around. 
+  visOptions(highlightNearest=TRUE,
+             nodesIdSelection=TRUE) %>% 
+  visLegend(
+    enabled = TRUE,
+    addEdges = data.frame(
+      label = c("Blood related and couple", "Close friend","relative","friend", "acquaintance"),
+      color = c("darkred", "darkgreen", "pink", "lightgreen","darkgray")))%>% 
+  visNodes(size = 5, color = list(highlight = "yellow"))
+
+#Data Visualization2: The following analysis look at who has the highest amount of connections. 
+#This article is heavily consulted https://jtr13.github.io/cc21fall2/network-visualization-in-r.html#centrality-measurement
+
+g <- graph_from_data_frame(d=edges, vertices=nodes, directed=FALSE)
+g
+degree_centrality <- degree(g)
+nodes2 <- nodes
+
+nodes2$degree_centrality <- degree_centrality[as.character(nodes2$id)]
+head(sort(degree_centrality, decreasing=TRUE))
+
+base_palette <- brewer.pal(9, "YlOrRd")
+colors_centrality <- rev(colorRampPalette(base_palette)(705))
+
+importance <- strength(g)
+nodes2$importance <- importance
+
+nodes2 <- nodes2 %>% mutate(degree_rank=706-floor(rank(degree_centrality)), color.background=colors_centrality[degree_rank], size=log((importance+3)^5))
+
+visNetwork(nodes2, edges, main = 'Degree Centrality of Prominent Singapore Chinese Personalities') %>%
+  visOptions(highlightNearest=TRUE,
+             nodesIdSelection=TRUE, selectedBy="degree_rank") %>% 
+  visPhysics(stabilization = TRUE) %>% 
+  visLegend(
+    enabled = TRUE,
+    addEdges = data.frame(
+      label = c("Blood related and couple", "Close friend","relative","friend", "acquaintance"),
+      color = c("darkred", "darkgreen", "pink", "green","darkgray")))%>% 
+  visNodes(color = list(highlight = "yellow"))
+
+
+#DataVisualization3: Looking at the top 10 personalities who have the greatest number of relationships and see if and what kind of relationships they have with each other. I am counting the occurrence of personality names in both from and to columns in the edges dataframe. 
+# Usage of the function pivot_longer helps me combine from and to columns and count them at the same time. 
+
+top_nodes <- edges %>%
+  select(from, to) %>%                  
+  pivot_longer(cols = everything(),     
+               values_to = "name",
+               names_to = NULL, 
+               names_repair = "minimal") %>% 
+  count(name, sort = TRUE) %>% 
+  slice_max(n = 20, order_by = n)
+
+filtered_nodes <- nodes %>%  filter(id %in% top_nodes$name|label %in% top_nodes$name)
+filtered_edges <- edges %>%  filter(from %in% top_nodes$name|to %in% top_nodes$name)
+
+visNetwork(filtered_nodes, filtered_edges, main = 'Top 20 Singapore Chinese Persoanlities Social Network') %>%  
+  visPhysics(stabilization = TRUE) %>%
+  visOptions(highlightNearest=TRUE,
+             nodesIdSelection=TRUE) %>% 
+  visLegend(
+    enabled = TRUE,
+    addEdges = data.frame(
+      label = c("Blood related and couple", "Close friend","relative","friend", "acquaintance"),
+      color = c("darkred", "darkgreen", "pink", "lightgreen","darkgray")))%>% 
+  visNodes(size = 5, color = list(highlight = "yellow"))
+
+
