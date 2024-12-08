@@ -64,7 +64,7 @@ visNetwork(nodes, edges, width = "100%", height = "500px",main = 'Singapore Chin
   visLegend(
     enabled = TRUE,
     addEdges = data.frame(
-      label = c("Blood related and couple", "Close friend","relative","friend", "acquaintance"),
+      label = c("blood related and couple", "close friend","relative","friend", "acquaintance"),
       color = c("darkred", "darkgreen", "pink", "lightgreen","darkgray")))%>% 
   visNodes(size = 5, color = list(highlight = "yellow")) %>% 
   visInteraction(navigationButtons = TRUE)
@@ -90,7 +90,7 @@ visNetwork(nodes2, edges, width = "100%", height = "500px",main = 'Degree Centra
   visLegend(
     enabled = TRUE,
     addEdges = data.frame(
-      label = c("Blood related and couple", "Close friend","relative","friend", "acquaintance"),
+      label = c("blood related and couple", "close friend","relative","friend", "acquaintance"),
       color = c("darkred", "darkgreen", "pink", "green","darkgray")))%>% 
   visNodes(color = list(highlight = "yellow")) %>% 
   visInteraction(navigationButtons = TRUE)
@@ -118,7 +118,7 @@ visNetwork(filtered_nodes, filtered_edges, width = "100%", height = "500px",main
   visLegend(
     enabled = TRUE,
     addEdges = data.frame(
-      label = c("Blood related and couple", "Close friend","relative","friend", "acquaintance"),
+      label = c("blood related and couple", "close friend","relative","friend", "acquaintance"),
       color = c("darkred", "darkgreen", "pink", "lightgreen","darkgray")))%>% 
   visNodes(size = 5, color = list(highlight = "yellow")) %>% 
   visInteraction(navigationButtons = TRUE)
