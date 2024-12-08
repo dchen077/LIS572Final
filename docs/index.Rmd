@@ -11,8 +11,8 @@ author: "Doreen Chen"
 <br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;While SBDB’s website does not provide explicit details about how the data was compiled, I was able to make some educated guesses by exploring its GitHub repository and SBDB’s website. The GitHub page includes both processed and raw datasets, the latter titled “sbdbTEI-NUSLibraryDataMerged” in XML and XSLT formats. From the available documentation, it appears that the researchers extracted information about Chinese personalities from the listed sources, compiled these details into a single document, cleaned the raw datasets, and created two finalized datasets: one focusing on biographical information and the other on social networks. This process indicates a significant amount of interpretation and decision-making on the part of the researchers, such as deciding which details to include and how they were categorized and formatted.
 <br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;Understanding the social and historical context is essential to the creation and purpose of the database, however, it is not essential to be able to read and process it. Nevertheless, having domain knowledge on Chinese language and culture can greatly enhance one’s ability to engage with the material, especially when it comes to interpreting the researchers’ notes and assessing the raw data in its entirety. While the processed datasets are offered in English and Chinese, much of the additional notes and summaries that researchers have added are indicated in Chinese. However, for the purpose of this project, I have replaced all of the Chinese names and notation with English or pinyin. 
 <br><span style="font-size: 20px;">**Result and Analysis**
-<br><span style="font-size: 15px;">&nbsp;&nbsp;&nbsp;&nbsp;Note: Before I go into my analysis, here is a brief instruction on how to navigate the interactive visualization. Because the dataset is large, it will take a minute to load. Zoom in and out of the visualization and legend. Click on a single node to highlight its relationship with other nodes. Drag the cursor around to move around the network.Click on select id or degree centrality to filter through names or degree centrality.Use navigation buttons if needed.</span>
-<br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;I have produced three data visualizations for this dataset. The first one visualizes the relationship between all personalities in the database. The center is very dense, which may indicate the presence of individuals or small groups that act as connectors or hubs, playing a crucial role in linking various subgroups within the network. It also reveals information about strong and weak ties, namely blood-related and close-friendships are represented by dark colors and concentrated in certain areas. On the hand, friendships and acquaintances, shown with lighter edges, form a more extensive network of weaker ties. In addition, smaller clusters throughout the graph suggest the existence of distinct communities or subgroups, which may represent families, social circles, or groups connected by commonalities. Overall, the network appears to be somewhat balanced, with no single node or cluster overwhelmingly dominant. It is possible that it indicates a relatively decentralized structure where connections are evenly distributed across the network.
+<br><span style="font-size: 15px;">&nbsp;&nbsp;&nbsp;&nbsp;Note: Before I go into my analysis, here is a brief instruction on how to navigate the interactive visualization. Because the dataset is large, it will take a minute to load. Zoom in and out of the visualization and legend. Click on a single node to highlight its relationship with other nodes. Drag the cursor around to move around the network. Click on select id or degree centrality to filter through names or degree centrality. Use navigation buttons if needed.</span>
+<br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;I have produced three data visualizations for this dataset. The first one visualizes the relationship between all personalities in the database. The center is very dense, which may indicate the presence of individuals or small groups that act as connectors or hubs, playing a crucial role in linking various groups within the network. It also reveals information about strong and weak ties, namely blood-related and close-friendships are represented by dark colors and concentrated in certain areas. On the hand, friendships and acquaintances, shown with lighter edges, form a more extensive network of weaker ties. In addition, smaller clusters throughout the graph suggest the existence of distinct communities or groups, which may represent families, social circles, or groups connected by commonalities. Overall, the network appears to be somewhat balanced, with no single node or cluster overwhelmingly dominant. It is possible that it indicates a relatively decentralized structure where connections are evenly distributed across the network.
 ```{r visNetwork, echo=FALSE, warning=FALSE, message=FALSE}
 library(dplyr)
 library(stringr)
@@ -57,7 +57,7 @@ colnames(edges) <- c("from","to","label")
 edges <- edges %>% mutate(color = label)
 edges <- edges %>% mutate(color = str_replace_all(color, c("三代以内直系血亲及夫妻"= "darkred", "普通伙伴" = "green","普通亲戚" = "pink","轻度社交" = "lightgreen","密切伙伴"="darkgreen")))
 edges <- edges %>% select(-label)
-visNetwork(nodes, edges, main = 'Singapore Chinese Personalities Database Social Network') %>%  
+visNetwork(nodes, edges, width = "100%", height = "500px",main = 'Singapore Chinese Personalities Database Social Network') %>%  
           visPhysics(stabilization = TRUE) %>% 
   visOptions(highlightNearest=TRUE,
              nodesIdSelection=TRUE) %>% 
@@ -71,7 +71,7 @@ visNetwork(nodes, edges, main = 'Singapore Chinese Personalities Database Social
 ```
 <br>
 <br>
-<br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;The second visualization displays the degree of centrality of the social network.(I heavily consulted this article() when creating this network.) Degree centrality is deﬁned as the number of adjacent edges to each node. The degree of centrality of a personality is indicated by its node size and node color. A personality with many unique relationships has a large node size and dark color, whereas a personality with one or two relationships has a smaller node size and light color. Similar to the previous network, the presence of clusters suggests distinct sub-communities, such as families, professional circles, or social groups, with a central core of highly connected individuals maintaining the overall network. One significant limitation this visualization has, however, is that due to limitation of the color palette, a personality that has 30 relationships will look very similar to one with 15 relationships. 
+<br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;The second visualization displays the degree of centrality of the social network.(I heavily consulted this [article](https://jtr13.github.io/cc21fall2/network-visualization-in-r.html#centrality-measurement) when creating this network.) Degree centrality is deﬁned as the number of adjacent edges to each node. The degree of centrality of a personality is indicated by its node size and node color. A personality with many unique relationships has a large node size and dark color, whereas a personality with one or two relationships has a smaller node size and light color. Similar to the previous network, the presence of clusters suggests distinct sub-communities, such as families, professional circles, or social groups, with a central core of highly connected individuals maintaining the overall network. One significant limitation this visualization has, however, is that due to limitation of the color palette, a personality that has 30 relationships will look very similar to one with 15 relationships. 
 ```{r DegreeCentrality, echo=FALSE, message=FALSE, warning=FALSE}
 
 g <- graph_from_data_frame(d=edges, vertices=nodes, directed=FALSE)
@@ -83,7 +83,7 @@ colors_centrality <- rev(colorRampPalette(base_palette)(705))
 importance <- strength(g)
 nodes2$importance <- importance
 nodes2 <- nodes2 %>% mutate(degree_rank=706-floor(rank(degree_centrality)), color.background=colors_centrality[degree_rank], size=log((importance+3)^5))
-visNetwork(nodes2, edges, main = 'Degree Centrality of Prominent Singapore Chinese Personalities') %>%
+visNetwork(nodes2, edges, width = "100%", height = "500px",main = 'Degree Centrality of Prominent Singapore Chinese Personalities') %>%
   visOptions(highlightNearest=TRUE,
              nodesIdSelection=TRUE, selectedBy="degree_rank") %>% 
   visPhysics(stabilization = TRUE) %>% 
@@ -97,7 +97,7 @@ visNetwork(nodes2, edges, main = 'Degree Centrality of Prominent Singapore Chine
 ```
 <br>
 <br>
-<br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;The third network visualization zooms in on the top 20 personalities that have the greatest number of relationships. It indicates what kind of relationships they have or do not have with each other. This network is a bit easier to analyze due to its size. However, it still offers significant insight into our overall network and the figures that form the main clusters. For instance, nodes such as Chen Jizhong, Chen Wulie, and Chen Jinsheng form a tightly connected subgroup. Central individuals such as Chen Ruijin, Lin Wenhua, and She Liancheng act as critical connectors within the network. The graph also emphasizes the dominance of friendships (as shown by green edges), which form the backbone of the network. Peripheral nodes like Xiao Baoling, Li Guangqian, and Chen Gongxi remain less connected, occupying the outskirts of the network. 
+<br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;The third network visualization zooms in on the top 20 personalities that have the greatest number of relationships. It indicates what kind of relationships they have or do not have with each other. This network is a bit easier to analyze due to its size. However, it still offers significant insight into our overall network and the figures that form the main clusters. For instance, nodes such as Chen Jizhong, Chen Wulie, and Chen Jinsheng form a tightly connected group. Central personalities such as Chen Ruijin, Lin Wenhua, and She Liancheng act as critical connectors within the network. The graph also emphasizes the dominance of friendships (as shown by green edges), which form the backbone of the network. Peripheral nodes like Xiao Baoling, Li Guangqian, and Chen Gongxi remain less connected, occupying the outskirts of the network. 
 ```{r topnodes, echo=FALSE, message=FALSE, warning=FALSE}
 top_nodes <- edges %>%
   select(from, to) %>%                  
@@ -111,7 +111,7 @@ top_nodes <- edges %>%
 filtered_nodes <- nodes %>%  filter(id %in% top_nodes$name|label %in% top_nodes$name)
 filtered_edges <- edges %>%  filter(from %in% top_nodes$name|to %in% top_nodes$name)
 
-visNetwork(filtered_nodes, filtered_edges, main = 'Top 20 Singapore Chinese Persoanlities Social Network') %>%  
+visNetwork(filtered_nodes, filtered_edges, width = "100%", height = "500px",main = 'Top 20 Singapore Chinese Persoanlities Social Network') %>%  
   visPhysics(stabilization = TRUE) %>%
   visOptions(highlightNearest=TRUE,
              nodesIdSelection=TRUE) %>% 
@@ -134,9 +134,9 @@ visNetwork(filtered_nodes, filtered_edges, main = 'Top 20 Singapore Chinese Pers
 <br><span style="font-size: 18px;">&nbsp;&nbsp;&nbsp;&nbsp;For future work, I believe integrating the historical, political, and social context surrounding these prominent individuals would provide a much richer narrative to the network visualization. Another area for exploration is analyzing the correlation between individuals' ethnicities—available in the other accompanied dataset—and their degree of centrality within social groups. This could reveal important insights into the dynamics of ethnicity within the network. Additionally, I would like to further refine the visualizations to enhance usability, such as improving navigation and enabling better interactivity.
 
 <br><span style="font-size: 18px;">**Sources I have heavy consulted for this project** 
-https://www.rdocumentation.org/packages/visNetwork/versions/2.1.2 
-https://thatdarndata.com/node-customization-for-stunning-networks/ 
-https://cran.r-project.org/web/packages/visNetwork/vignettes/Introduction-to-visNetwork.html 
-https://www.statworx.com/en/content-hub/blog/interactive-network-visualization-with-r/
-https://datastorm-open.github.io/visNetwork/
-https://mbounthavong.com/blog/2022/7/30/hosting-a-r-markdown-html-file-on-a-github-page 
+<br>https://www.rdocumentation.org/packages/visNetwork/versions/2.1.2 
+<br>https://thatdarndata.com/node-customization-for-stunning-networks/ 
+<br>https://cran.r-project.org/web/packages/visNetwork/vignettes/Introduction-to-visNetwork.html 
+<br>https://www.statworx.com/en/content-hub/blog/interactive-network-visualization-with-r/
+<br>https://datastorm-open.github.io/visNetwork/
+<br>https://mbounthavong.com/blog/2022/7/30/hosting-a-r-markdown-html-file-on-a-github-page 

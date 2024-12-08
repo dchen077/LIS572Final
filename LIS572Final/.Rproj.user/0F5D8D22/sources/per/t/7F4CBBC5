@@ -3,24 +3,24 @@
     "path": "C:/Users/daoyi/OneDrive/Desktop/LinkedData/GitHub Repo/LIS572Final/docs/index.Rmd",
     "project_path": null,
     "type": "r_markdown",
-    "hash": "3052172102",
+    "hash": "3138532734",
     "contents": "",
     "dirty": false,
     "created": 1733634672453.0,
-    "source_on_save": true,
+    "source_on_save": false,
     "relative_order": 4,
     "properties": {
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "73,218",
-        "scrollLine": "65"
+        "cursorPosition": "13,491",
+        "scrollLine": "12"
     },
     "folds": "",
-    "lastKnownWriteTime": 1733640377,
+    "lastKnownWriteTime": 1733641666,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1733640377249,
+    "last_content_update": 1733641666141,
     "read_only": false,
     "read_only_alternatives": []
 }
